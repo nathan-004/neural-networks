@@ -13,8 +13,8 @@ def sigmoid(z):
 class Node:
     """Prend en entrée la couche précédente pour faire le calcul sur tous les neurones précédents"""
     
-    max_weight = 0.5
-    min_weight = 0.5
+    max_weight = 1
+    min_weight = 0.15
     min_bias = 1
     max_bias = 5
     activation_functions = {
@@ -78,7 +78,10 @@ class InputNode:
         self.value = value
        
 class NeuralNetwork:
-    
+    """Contient les couches contenant les noeuds"""
+
+    variation_base = 2
+
     def __init__(self, n_layers,hidden_size, n_input, n_output):
         """
         Parameters
@@ -139,13 +142,69 @@ class NeuralNetwork:
 
         return node.value
     
-    def mutify(self, error):
+    def mutate(self, error):
         """
         Modifie les poids et les biais des noeuds aléatoirement dans une range qui varie en fonction de l'erreur
+
+        Parameters
+        ----------
+        error:float
+            Coefficient d'erreur, peut être négatif
         """
 
+        cur_variation = self.variation_base*abs(error)
         
+        # Modifier pour toutes les couches
+        for idx, layer in enumerate(self.layers):
+            for node in layer:
+                node.weights = [node.weights[i] + random.uniform(-cur_variation, cur_variation) for i in range(len(node.weigths))]
+                node.bias = node.bias + random.uniform(-cur_variation, cur_variation)
+
+        # Modifier pour l'output
+        for node in self.output_layer:
+            node.weights = [node.weights[i] + random.uniform(-cur_variation, cur_variation) for i in range(len(node.weigths))]
+            node.bias = node.bias + random.uniform(-cur_variation, cur_variation)
+
+class GeneticAi:
+
+    def __init__(self, population_size, n_layers,hidden_size, n_input, n_output):
+        """
+        Parameters
+        ----------
+        epochs:int
+            Nombre de répétition
+        population_size:int
+            Nombre de Réseau de neurones
+        n_layers:int
+            Nombre de couches
+        hidden_size:int
+            Nombre de noeuds pour chaques couches
+        n_input:int
+            Taille de l'input
+        n_output:int
+            Taille de l'output
+        """
+        self.population_size = population_size
+        self.n_layers = n_layers
+        self.hidden_size = hidden_size
+        self.n_input = n_input
+        self.n_output = n_output
+
+        self.population = [NeuralNetwork(n_layers, hidden_size, n_input, n_output) for _ in range(population_size)] # Liste des réseaux de Neurones
+
+    def train(self, training_data:dict, epochs):
+        """
+        Calcule la précision de chaque Réseau et garde les meilleurs pour les modifier epochs fois
+
+        Parameters
+        ----------
+        training_data:dict
+            Dictionnaire sous la forme {input:tuple, outputs:tuple}
+        """
+
+        pass
     
 if __name__ == "__main__":
     nn = NeuralNetwork(5, 3, 1, 1)
     print(nn.prediction([1]))
+    nn.mutate(0.6)
