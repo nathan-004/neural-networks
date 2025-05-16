@@ -1,4 +1,5 @@
 import random
+from math import exp
 
 # -----------------------Activation Functions-------------------------
 def relu(z):
@@ -68,6 +69,7 @@ class Node:
             res += f(node.value*w)
         
         res += self.bias
+        self.value = res
         return res
             
 class InputNode:
@@ -77,10 +79,21 @@ class InputNode:
        
 class NeuralNetwork:
     
-    def __init__(self, n_layers,hidden_size, input_values, n_output):
-        
-        self.input_layer = [InputNode(value) for value in input_values]
-        
+    def __init__(self, n_layers,hidden_size, n_input, n_output):
+        """
+        Parameters
+        ----------
+        n_layers:int
+            Nombre de couches
+        hidden_size:int
+            Nombre de noeuds pour chaques couches
+        n_input:int
+            Taille de l'input
+        n_output:int
+            Taille de l'output
+        """
+        self.input_layer = [InputNode(0) for _ in range(n_input)]
+
         self.layers = [] # Liste de listes de noeuds
         
         for i in range(n_layers):
@@ -93,3 +106,46 @@ class NeuralNetwork:
             self.layers.append(layer_nodes)
         
         self.output_layer = [Node(self.layers[-1]) for _ in range(n_output)]
+
+    def prediction(self, inputs:list=[]):
+        """
+        Calcule les outputs en fonction des valeurs en input
+
+        Parameters
+        ----------
+        inputs:list
+            Valeurs numériques
+        """
+
+        for n in inputs:
+            if type(n) != int:
+                raise AssertionError(f"{type(n)} trouvé au lieu de {int}")
+        
+        if len(inputs) != len(self.input_layer):
+            raise AssertionError(f"{len(inputs)} inputs trouvés au lieu de {len(self.input_layer)}")
+        
+        # Initier les valeurs dans `input_layer`
+        for idx, val in enumerate(inputs):
+            self.input_layer[idx].value = val
+
+        # Calculer les valeurs pour chaques couches
+        for idx, layer in enumerate(self.layers):
+            for node in layer:
+                node.calculate()
+
+        # Calculer les valeurs `output`
+        for node in self.output_layer:
+            node.calculate()
+
+        return node.value
+    
+    def mutify(self, error):
+        """
+        Modifie les poids et les biais des noeuds aléatoirement dans une range qui varie en fonction de l'erreur
+        """
+
+        
+    
+if __name__ == "__main__":
+    nn = NeuralNetwork(5, 3, 1, 1)
+    print(nn.prediction([1]))
