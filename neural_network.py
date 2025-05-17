@@ -10,6 +10,29 @@ def sigmoid(z):
     """Sigmoid activation"""
     return 1/(1+exp(-1*z))
 
+def erreur_relative(liste1, liste2):
+    erreur_absolue = [abs(a - b) for a, b in zip(liste1, liste2)]
+    erreurs_relatives = [erreur / a for erreur, a in zip(erreur_absolue, liste1)]
+    return sum(erreurs_relatives) / len(erreurs_relatives)
+
+def copy(neural_network1, neural_network2=None):
+    """
+    Change the values of the neural_network2 with the values of the neural_network1
+    
+    If neural_network2 is not specified : creates a new neural_network
+    """
+    if neural_network2 is None:
+        raise AssertionError("A implementer")
+
+    for idx, layer in enumerate(neural_network1.layers):
+        for idx_node, node in enumerate(layer):
+            neural_network2.layers[idx][idx_node].weights = node.weights
+            neural_network2.layers[idx][idx_node].bias = node.bias
+
+    for idx, node in enumerate(neural_network1.output_layer):
+        neural_network2.output_layer[idx].weights = node.weights
+        neural_network2.output_layer[idx].bias = node.bias
+
 class Node:
     """Prend en entrée la couche précédente pour faire le calcul sur tous les neurones précédents"""
     
@@ -140,7 +163,7 @@ class NeuralNetwork:
         for node in self.output_layer:
             node.calculate()
 
-        return node.value
+        return [node.value for node in self.output_layer]
     
     def mutate(self, error):
         """
@@ -157,13 +180,15 @@ class NeuralNetwork:
         # Modifier pour toutes les couches
         for idx, layer in enumerate(self.layers):
             for node in layer:
-                node.weights = [node.weights[i] + random.uniform(-cur_variation, cur_variation) for i in range(len(node.weigths))]
+                node.weights = [node.weights[i] + random.uniform(-cur_variation, cur_variation) for i in range(len(node.weights))]
                 node.bias = node.bias + random.uniform(-cur_variation, cur_variation)
 
         # Modifier pour l'output
         for node in self.output_layer:
-            node.weights = [node.weights[i] + random.uniform(-cur_variation, cur_variation) for i in range(len(node.weigths))]
+            node.weights = [node.weights[i] + random.uniform(-cur_variation, cur_variation) for i in range(len(node.weights))]
             node.bias = node.bias + random.uniform(-cur_variation, cur_variation)
+
+    
 
 class GeneticAi:
 
@@ -192,7 +217,7 @@ class GeneticAi:
 
         self.population = [NeuralNetwork(n_layers, hidden_size, n_input, n_output) for _ in range(population_size)] # Liste des réseaux de Neurones
 
-    def train(self, training_data:dict, epochs):
+    def train(self, training_data:dict, epochs:int):
         """
         Calcule la précision de chaque Réseau et garde les meilleurs pour les modifier epochs fois
 
@@ -202,9 +227,62 @@ class GeneticAi:
             Dictionnaire sous la forme {input:tuple, outputs:tuple}
         """
 
-        pass
-    
+        for i in range(epochs):
+            
+            # Faire une liste triés du meilleur au pire et ne garder que les 1/10
+            precisions = {nn: self.get_precision(nn, training_data) for nn in self.population}
+            precisions_sorted = sorted(precisions.items(), key=lambda x: x[1])
+            n_best = max(1, self.population_size // 10)
+            best_networks = [nn for nn, _ in precisions_sorted[:n_best]]
+            print(best_networks[0].prediction([3]))
+
+            # Recréer la population avec les 1/10 qui sont les mêmes et les autres sont des dérivés des 1/10 meilleurs
+            best_index = 0 # Index de best_networks
+
+            for idx, nn in enumerate(self.population):
+                if idx < n_best:
+                    self.population[idx] = best_networks[idx]
+                    continue
+                
+                error = precisions[nn]
+                copy(best_networks[best_index], nn)
+
+                nn.mutate(error)
+            
+                best_index += 1
+
+                if best_index == n_best:
+                    best_index = 0
+
+    def get_precision(self, neural_network:NeuralNetwork, training_data:dict):
+        """
+        Parameters
+        ----------
+        neural_network:NeuralNetwork
+        training_data:dict
+            Dictionnaire sous la forme {input:tuple, outputs:tuple}
+
+        Returns
+        -------
+        Moyenne des erreurs relatives des différents inputs et outputs
+        """
+
+        results = 0
+
+        for input, output in training_data.items():
+            results += erreur_relative(neural_network.prediction(input), output) # Calculer erreur relative
+
+        return results / len(training_data)
+
+
 if __name__ == "__main__":
-    nn = NeuralNetwork(5, 3, 1, 1)
-    print(nn.prediction([1]))
-    nn.mutate(0.6)
+    training_data = {
+        (0,): (0,),
+        (1,): (1,),
+        (2,): (4,),
+        (3,): (9,),
+        (4,): (16,),
+    }
+    ai = GeneticAi(10, 100, 3, 1, 1)
+    ai.train(training_data, epochs=30)
+    print(ai.population[0].prediction([5]))
