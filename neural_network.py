@@ -138,7 +138,10 @@ class NeuralNetwork:
                     layer_nodes.append(Node(self.layers[-1]))
             self.layers.append(layer_nodes)
         
-        self.output_layer = [Node(self.layers[-1]) for _ in range(n_output)]
+        if n_layers != 0:
+            self.output_layer = [Node(self.layers[-1]) for _ in range(n_output)]
+        else:
+            self.output_layer = [Node(self.input_layer) for _ in range(n_output)]
 
     def prediction(self, inputs:list=[]):
         """
@@ -284,42 +287,5 @@ class GeneticAi:
 
         return results / len(training_data)
 
-training_datas = {
-    "Mult2" : {
-        (0,): (0,),
-        (1,): (2,),
-        (2,): (4,),
-        (3,): (6,),
-        (4,): (8,),
-        (6,): (12,),
-        (7,): (14,),
-        (10,): (20,),
-        (15,): (30,)
-    },
-    "Pow2" : {
-        (0,): (0,),
-        (1,): (1,),
-        (2,): (4,),
-        (3,): (9,),
-        (4,): (16,),
-        (5,): (25,),
-        (6,): (36,),
-        (7,): (49,),
-        (8,): (64,),
-        (9,): (81,),
-        (10,): (100,)
-    }
-}
-
 if __name__ == "__main__":
-    training_data = training_datas["Mult2"]
-    
-    ai = GeneticAi(population_size=100,
-               n_layers=1,
-               hidden_size=5,
-               n_input=1,
-               n_output=1)
-    
-    ai.train(training_data, epochs=2000)
-    for i in range(15):
-        print(i, ai.population[0].prediction([i]), i*2, sep=" : ")
+    pass
