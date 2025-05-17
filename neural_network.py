@@ -10,10 +10,16 @@ def sigmoid(z):
     """Sigmoid activation"""
     return 1/(1+exp(-1*z))
 
+def linear(z):
+    return z
+
 def erreur_relative(liste1, liste2):
     erreur_absolue = [abs(a - b) for a, b in zip(liste1, liste2)]
     erreurs_relatives = [erreur / a for erreur, a in zip(erreur_absolue, liste1)]
     return sum(erreurs_relatives) / len(erreurs_relatives)
+
+def mse(preds, targets):
+    return sum((p - t)**2 for p, t in zip(preds, targets)) / len(preds)
 
 def copy(neural_network1, neural_network2=None):
     """
@@ -26,11 +32,11 @@ def copy(neural_network1, neural_network2=None):
 
     for idx, layer in enumerate(neural_network1.layers):
         for idx_node, node in enumerate(layer):
-            neural_network2.layers[idx][idx_node].weights = node.weights
+            neural_network2.layers[idx][idx_node].weights = node.weights.copy()
             neural_network2.layers[idx][idx_node].bias = node.bias
 
     for idx, node in enumerate(neural_network1.output_layer):
-        neural_network2.output_layer[idx].weights = node.weights
+        neural_network2.output_layer[idx].weights = node.weights.copy()
         neural_network2.output_layer[idx].bias = node.bias
 
 class Node:
@@ -38,11 +44,12 @@ class Node:
     
     max_weight = 1
     min_weight = 0.15
-    min_bias = 1
-    max_bias = 5
+    min_bias = -1
+    max_bias = 1
     activation_functions = {
         "relu": relu,
         "sigmoid": sigmoid,
+        "linear": linear,
     }
     
     def __init__(self, last_layer:list, weights=None, bias=None):
@@ -65,7 +72,7 @@ class Node:
             if len(weights) == n_last_node:
                 self.weights = weights
             else:
-                AssertionError("Nombre de poids différent de celui des Nodes")
+                raise AssertionError("Nombre de poids différent de celui des Nodes")
         
         if not bias is None:
             self.bias = bias
@@ -81,7 +88,7 @@ class Node:
     def calculate(self, activation_function="sigmoid"):
         """Calcule la nouvelle valeur du Noeud avec les valeurs des noeuds précédents"""
         if not activation_function in self.activation_functions:
-            AssertionError("La fonction d'activation donnée n'existe pas")    
+            raise AssertionError("La fonction d'activation donnée n'existe pas")    
         f = self.activation_functions[activation_function]
         
         # Somme de la valeur * le poids de chaque noeuds + le biais
@@ -89,9 +96,9 @@ class Node:
         
         for idx, node in enumerate(self.last_layer):
             w = self.weights[idx]
-            res += f(node.value*w)
+            res += node.value*w
         
-        res += self.bias
+        res = f(res+self.bias)
         self.value = res
         return res
             
@@ -103,7 +110,7 @@ class InputNode:
 class NeuralNetwork:
     """Contient les couches contenant les noeuds"""
 
-    variation_base = 2
+    variation_base = 0.1
 
     def __init__(self, n_layers,hidden_size, n_input, n_output):
         """
@@ -157,11 +164,11 @@ class NeuralNetwork:
         # Calculer les valeurs pour chaques couches
         for idx, layer in enumerate(self.layers):
             for node in layer:
-                node.calculate()
+                node.calculate(activation_function="sigmoid")
 
         # Calculer les valeurs `output`
         for node in self.output_layer:
-            node.calculate()
+            node.calculate(activation_function="linear")
 
         return [node.value for node in self.output_layer]
     
@@ -175,7 +182,7 @@ class NeuralNetwork:
             Coefficient d'erreur, peut être négatif
         """
 
-        cur_variation = self.variation_base*abs(error)
+        cur_variation = self.variation_base * min(abs(error), 1.0)
         
         # Modifier pour toutes les couches
         for idx, layer in enumerate(self.layers):
@@ -234,7 +241,10 @@ class GeneticAi:
             precisions_sorted = sorted(precisions.items(), key=lambda x: x[1])
             n_best = max(1, self.population_size // 10)
             best_networks = [nn for nn, _ in precisions_sorted[:n_best]]
-            print(best_networks[0].prediction([3]))
+            best = best_networks[0]
+            err  = precisions[best]
+            print(f"Epoch {i+1}/{epochs} — meilleure erreur = {err:.4f} — prédiction(3) = {best.prediction([3])[0]:.4f}")
+
 
             # Recréer la population avec les 1/10 qui sont les mêmes et les autres sont des dérivés des 1/10 meilleurs
             best_index = 0 # Index de best_networks
@@ -270,19 +280,46 @@ class GeneticAi:
         results = 0
 
         for input, output in training_data.items():
-            results += erreur_relative(neural_network.prediction(input), output) # Calculer erreur relative
+            results += mse(neural_network.prediction(input), output) # Calculer erreur relative
 
         return results / len(training_data)
 
-
-if __name__ == "__main__":
-    training_data = {
+training_datas = {
+    "Mult2" : {
+        (0,): (0,),
+        (1,): (2,),
+        (2,): (4,),
+        (3,): (6,),
+        (4,): (8,),
+        (6,): (12,),
+        (7,): (14,),
+        (10,): (20,),
+        (15,): (30,)
+    },
+    "Pow2" : {
         (0,): (0,),
         (1,): (1,),
         (2,): (4,),
         (3,): (9,),
         (4,): (16,),
+        (5,): (25,),
+        (6,): (36,),
+        (7,): (49,),
+        (8,): (64,),
+        (9,): (81,),
+        (10,): (100,)
     }
-    ai = GeneticAi(10, 100, 3, 1, 1)
-    ai.train(training_data, epochs=30)
-    print(ai.population[0].prediction([5]))
+}
+
+if __name__ == "__main__":
+    training_data = training_datas["Mult2"]
+    
+    ai = GeneticAi(population_size=100,
+               n_layers=1,
+               hidden_size=5,
+               n_input=1,
+               n_output=1)
+    
+    ai.train(training_data, epochs=2000)
+    for i in range(15):
+        print(i, ai.population[0].prediction([i]), i*2, sep=" : ")
