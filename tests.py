@@ -172,7 +172,7 @@ def power_2():
         hidden_size=10,
         n_input=1,
         n_output=1,
-        erreur_calcul="erreur_relative",
+        erreur_calcul="mse",
     )
     
     ai.train(training_data, epochs=3000)
@@ -215,9 +215,6 @@ def classification_diabete():
         for row in data[limite:]
     }
 
-    print(set(y for _, y in training_data.items()))  # Devrait être {0, 1}
-
-
     ai = GeneticAi(
         population_size=40,
         n_layers=2,
@@ -236,4 +233,4 @@ def classification_diabete():
     print(f"Erreur moyenne sur test_data : {score:.4f}")
 
 if __name__ == "__main__":
-   classification_diabete()
+   power_2()
