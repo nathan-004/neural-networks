@@ -167,7 +167,7 @@ class NeuralNetwork:
         # Calculer les valeurs pour chaques couches
         for idx, layer in enumerate(self.layers):
             for node in layer:
-                node.calculate(activation_function="sigmoid")
+                node.calculate(activation_function="relu")
 
         # Calculer les valeurs `output`
         for node in self.output_layer:
@@ -202,7 +202,12 @@ class NeuralNetwork:
 
 class GeneticAi:
 
-    def __init__(self, population_size, n_layers,hidden_size, n_input, n_output):
+    error_functions = {
+        "mse": mse,
+        "erreur_relative": erreur_relative,
+    }
+
+    def __init__(self, population_size, n_layers,hidden_size, n_input, n_output, erreur_calcul="mse"):
         """
         Parameters
         ----------
@@ -224,6 +229,7 @@ class GeneticAi:
         self.hidden_size = hidden_size
         self.n_input = n_input
         self.n_output = n_output
+        self.error = self.error_functions[erreur_calcul]
 
         self.population = [NeuralNetwork(n_layers, hidden_size, n_input, n_output) for _ in range(population_size)] # Liste des réseaux de Neurones
 
@@ -283,7 +289,7 @@ class GeneticAi:
         results = 0
 
         for input, output in training_data.items():
-            results += mse(neural_network.prediction(input), output) # Calculer erreur relative
+            results += self.error(neural_network.prediction(input), output) # Calculer erreur relative
 
         return results / len(training_data)
 
