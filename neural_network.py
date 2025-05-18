@@ -1,4 +1,5 @@
 import random
+import math
 from math import exp
 
 # -----------------------Activation Functions-------------------------
@@ -8,18 +9,33 @@ def relu(z):
 
 def sigmoid(z):
     """Sigmoid activation"""
-    return 1/(1+exp(-1*z))
+    return 1 / (1 + math.exp(-z))
 
 def linear(z):
     return z
 
+def tanh(x):
+    return math.tanh(x)
+
+# ----------------------Cost Functions------------------------------
 def erreur_relative(liste1, liste2):
     erreur_absolue = [abs(a - b) for a, b in zip(liste1, liste2)]
     erreurs_relatives = [erreur / a for erreur, a in zip(erreur_absolue, liste1)]
     return sum(erreurs_relatives) / len(erreurs_relatives)
 
 def mse(preds, targets):
+    """Mean Squared Error"""
     return sum((p - t)**2 for p, t in zip(preds, targets)) / len(preds)
+
+def bce(y_pred, y_true):
+    epsilon = 1e-7
+    losses = []
+    for yt, yp in zip(y_true, y_pred):
+        yp = max(min(yp, 1 - epsilon), epsilon)
+        loss = - (yt * math.log(yp) + (1 - yt) * math.log(1 - yp))
+        losses.append(loss)
+    return sum(losses) / len(losses)
+
 
 def copy(neural_network1, neural_network2=None):
     """
@@ -42,14 +58,15 @@ def copy(neural_network1, neural_network2=None):
 class Node:
     """Prend en entrée la couche précédente pour faire le calcul sur tous les neurones précédents"""
     
-    max_weight = 1
-    min_weight = 0.15
+    min_weight = -0.5
+    max_weight = 0.5
     min_bias = -1
     max_bias = 1
     activation_functions = {
         "relu": relu,
         "sigmoid": sigmoid,
         "linear": linear,
+        "tanh": tanh,
     }
     
     def __init__(self, last_layer:list, weights=None, bias=None):
@@ -110,9 +127,9 @@ class InputNode:
 class NeuralNetwork:
     """Contient les couches contenant les noeuds"""
 
-    variation_base = 0.1
+    variation_base = 0.5
 
-    def __init__(self, n_layers,hidden_size, n_input, n_output):
+    def __init__(self, n_layers,hidden_size, n_input, n_output, hidden_activation_function:str="relu", output_activation_function="linear"):
         """
         Parameters
         ----------
@@ -125,6 +142,9 @@ class NeuralNetwork:
         n_output:int
             Taille de l'output
         """
+        self.hidden_activation_function = hidden_activation_function
+        self.output_activation_function = output_activation_function
+
         self.input_layer = [InputNode(0) for _ in range(n_input)]
 
         self.layers = [] # Liste de listes de noeuds
@@ -154,7 +174,7 @@ class NeuralNetwork:
         """
 
         for n in inputs:
-            if type(n) != int:
+            if type(n) != int and type(n) != float:
                 raise AssertionError(f"{type(n)} trouvé au lieu de {int}")
         
         if len(inputs) != len(self.input_layer):
@@ -167,11 +187,11 @@ class NeuralNetwork:
         # Calculer les valeurs pour chaques couches
         for idx, layer in enumerate(self.layers):
             for node in layer:
-                node.calculate(activation_function="relu")
+                node.calculate(activation_function=self.hidden_activation_function)
 
         # Calculer les valeurs `output`
         for node in self.output_layer:
-            node.calculate(activation_function="linear")
+            node.calculate(activation_function=self.output_activation_function)
 
         return [node.value for node in self.output_layer]
     
@@ -205,9 +225,10 @@ class GeneticAi:
     error_functions = {
         "mse": mse,
         "erreur_relative": erreur_relative,
+        "bce": bce,
     }
 
-    def __init__(self, population_size, n_layers,hidden_size, n_input, n_output, erreur_calcul="mse"):
+    def __init__(self, population_size, n_layers,hidden_size, n_input, n_output, erreur_calcul="mse", hidden_activation_function:str="relu", output_activation_function="linear"):
         """
         Parameters
         ----------
@@ -230,8 +251,10 @@ class GeneticAi:
         self.n_input = n_input
         self.n_output = n_output
         self.error = self.error_functions[erreur_calcul]
+        self.hidden_activation_function = hidden_activation_function
+        self.output_activation_function = output_activation_function
 
-        self.population = [NeuralNetwork(n_layers, hidden_size, n_input, n_output) for _ in range(population_size)] # Liste des réseaux de Neurones
+        self.population = [NeuralNetwork(n_layers, hidden_size, n_input, n_output, hidden_activation_function, output_activation_function) for _ in range(population_size)] # Liste des réseaux de Neurones
 
     def train(self, training_data:dict, epochs:int):
         """
@@ -252,7 +275,7 @@ class GeneticAi:
             best_networks = [nn for nn, _ in precisions_sorted[:n_best]]
             best = best_networks[0]
             err  = precisions[best]
-            print(f"Epoch {i+1}/{epochs} — meilleure erreur = {err:.4f} — prédiction(3) = {best.prediction([3])[0]:.4f}")
+            print(f"Epoch {i+1}/{epochs} — meilleure erreur = {err:.4f}")
 
 
             # Recréer la population avec les 1/10 qui sont les mêmes et les autres sont des dérivés des 1/10 meilleurs
@@ -262,7 +285,7 @@ class GeneticAi:
                 if idx < n_best:
                     self.population[idx] = best_networks[idx]
                     continue
-                
+
                 error = precisions[nn]
                 copy(best_networks[best_index], nn)
 
