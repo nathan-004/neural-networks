@@ -58,8 +58,8 @@ def copy(neural_network1, neural_network2=None):
 class Node:
     """Prend en entrée la couche précédente pour faire le calcul sur tous les neurones précédents"""
     
-    min_weight = -0.5
-    max_weight = 0.5
+    min_weight = -1
+    max_weight = 1
     min_bias = -1
     max_bias = 1
     activation_functions = {
@@ -127,7 +127,7 @@ class InputNode:
 class NeuralNetwork:
     """Contient les couches contenant les noeuds"""
 
-    variation_base = 0.5
+    variation_base = 0.1
 
     def __init__(self, n_layers,hidden_size, n_input, n_output, hidden_activation_function:str="relu", output_activation_function="linear"):
         """
