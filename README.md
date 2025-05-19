@@ -16,6 +16,7 @@ erreur_calcul="mse",
 
 ai.train(training_data, epochs=1000)
 ```
+Sur des données d'entraînement allant de -10 à 10
 
 ![Graphique de l'approximation de sin](/images/sin_approximation.png)
 
