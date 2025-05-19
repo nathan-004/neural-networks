@@ -126,6 +126,9 @@ training_datas = {
         (-4,): (sin(-4),),
         (-5,): (sin(-5),),
         (-6,): (sin(-6),),
+        (-7,): (sin(-7),),
+        (-8,): (sin(-8),),
+        (-10,): (sin(-10),),
     }
 }
 
@@ -175,7 +178,7 @@ def power_2():
         erreur_calcul="mse",
     )
     
-    ai.train(training_data, epochs=3000)
+    ai.train(training_data, epochs=1000)
 
     for i in range(15):
         print(i, ai.population[0].prediction([i])[0], i**2, sep=" : ")
@@ -194,7 +197,7 @@ def sin_x():
         erreur_calcul="mse",
     )
 
-    ai.train(training_data, epochs=3000)
+    ai.train(training_data, epochs=1000)
 
     for i in range(15):
         print(i, ai.population[0].prediction([i])[0], sin(i), sep=" : ")
@@ -233,4 +236,5 @@ def classification_diabete():
     print(f"Erreur moyenne sur test_data : {score:.4f}")
 
 if __name__ == "__main__":
-   power_2()
+   sin_x()
+
