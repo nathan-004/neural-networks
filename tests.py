@@ -157,7 +157,7 @@ def multiplication_2():
                n_input=1,
                n_output=1)
     
-    ai.train(training_data, epochs=10000)
+    ai.train(training_data, epochs=1000)
 
     for i in [-40, -10, 0, 10, 20, 25, 30, 37, 40, 100]:
         print(i, ai.population[0].prediction([i])[0], i*2, sep=" : ")
@@ -206,7 +206,7 @@ def sin_x():
 
 def classification_diabete():
     data = importer_table("data/diabetes.csv")
-    limite = int(len(data) * 0.5)
+    limite = int(len(data) * 0.8)
     training_data = {
         tuple(list(line.values())[:-1]): (float(list(line.values())[-1]),)
         for line in data[:limite]
@@ -229,12 +229,11 @@ def classification_diabete():
         output_activation_function="sigmoid",
     )
 
-    ai.train(training_data, 500)
+    ai.train(training_data, 250, mutation_base=0.1)
 
     # Évaluation sur les données de test
     score = ai.get_precision(ai.population[0], test_data)
     print(f"Erreur moyenne sur test_data : {score:.4f}")
 
 if __name__ == "__main__":
-   sin_x()
-
+   classification_diabete()

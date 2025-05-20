@@ -195,7 +195,7 @@ class NeuralNetwork:
 
         return [node.value for node in self.output_layer]
     
-    def mutate(self, error):
+    def mutate(self, error, mutation_base=None):
         """
         Modifie les poids et les biais des noeuds aléatoirement dans une range qui varie en fonction de l'erreur
 
@@ -204,8 +204,11 @@ class NeuralNetwork:
         error:float
             Coefficient d'erreur, peut être négatif
         """
-
-        cur_variation = self.variation_base * min(abs(error), 1.0)
+        if mutation_base is None:
+            base_mutation = self.variation_base
+        else:
+            base_mutation = mutation_base
+        cur_variation = base_mutation * min(abs(error), 1.0)
         
         # Modifier pour toutes les couches
         for idx, layer in enumerate(self.layers):
@@ -232,8 +235,6 @@ class GeneticAi:
         """
         Parameters
         ----------
-        epochs:int
-            Nombre de répétition
         population_size:int
             Nombre de Réseau de neurones
         n_layers:int
@@ -256,7 +257,7 @@ class GeneticAi:
 
         self.population = [NeuralNetwork(n_layers, hidden_size, n_input, n_output, hidden_activation_function, output_activation_function) for _ in range(population_size)] # Liste des réseaux de Neurones
 
-    def train(self, training_data:dict, epochs:int):
+    def train(self, training_data:dict, epochs:int, mutation_base:float=0.1):
         """
         Calcule la précision de chaque Réseau et garde les meilleurs pour les modifier epochs fois
 
@@ -264,6 +265,10 @@ class GeneticAi:
         ----------
         training_data:dict
             Dictionnaire sous la forme {input:tuple, outputs:tuple}
+        epochs:int
+            Nombre de répétition
+        base_mutation:float
+            Variation maximum des valeurs
         """
 
         for i in range(epochs):
@@ -286,10 +291,11 @@ class GeneticAi:
                     self.population[idx] = best_networks[idx]
                     continue
 
+
                 error = precisions[nn]
                 copy(best_networks[best_index], nn)
 
-                nn.mutate(error)
+                nn.mutate(error, mutation_base)
             
                 best_index += 1
 
