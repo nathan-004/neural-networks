@@ -197,12 +197,22 @@ def sin_x():
         erreur_calcul="mse",
     )
 
-    ai.train(training_data, epochs=1000)
+    errors = ai.train(training_data, epochs=1000)
 
     for i in range(15):
         print(i, ai.population[0].prediction([i])[0], sin(i), sep=" : ")
 
     graph_results(ai.population[0], lambda x : sin(x), -20, 20)
+    
+    xs = [i for i in range(len(errors))]
+    plt.figure(figsize=(10, 6))
+    plt.plot(xs, errors, label="Erreur", color="blue", linewidth=2)
+    plt.title("Comparaison des prédictions vs vraie fonction")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 def classification_diabete():
     data = importer_table("data/diabetes.csv")
@@ -236,4 +246,4 @@ def classification_diabete():
     print(f"Erreur moyenne sur test_data : {score:.4f}")
 
 if __name__ == "__main__":
-   classification_diabete()
+   sin_x()

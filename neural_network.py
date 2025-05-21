@@ -269,8 +269,14 @@ class GeneticAi:
             Nombre de répétition
         base_mutation:float
             Variation maximum des valeurs
+            
+        Returns
+        -------
+        list
+            Liste des meilleurs erreurs
         """
-
+        errors = []
+        
         for i in range(epochs):
             
             # Faire une liste triés du meilleur au pire et ne garder que les 1/10
@@ -280,6 +286,7 @@ class GeneticAi:
             best_networks = [nn for nn, _ in precisions_sorted[:n_best]]
             best = best_networks[0]
             err  = precisions[best]
+            errors.append(err)
             print(f"Epoch {i+1}/{epochs} — meilleure erreur = {err:.4f}")
 
 
@@ -301,6 +308,8 @@ class GeneticAi:
 
                 if best_index == n_best:
                     best_index = 0
+        
+        return errors
 
     def get_precision(self, neural_network:NeuralNetwork, training_data:dict):
         """
