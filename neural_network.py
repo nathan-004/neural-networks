@@ -36,6 +36,11 @@ def bce(y_pred, y_true):
         losses.append(loss)
     return sum(losses) / len(losses)
 
+def binary_error(preds, targets):
+    loss = []
+    for targ, pred in zip(targets, preds):
+        loss.append(int(abs(targ-pred) < 0.5))
+    return sum(loss) / len(loss)
 
 def copy(neural_network1, neural_network2=None):
     """
@@ -229,6 +234,7 @@ class GeneticAi:
         "mse": mse,
         "erreur_relative": erreur_relative,
         "bce": bce,
+        "erreur_binaire": binary_error,
     }
 
     def __init__(self, population_size, n_layers,hidden_size, n_input, n_output, erreur_calcul="mse", hidden_activation_function:str="relu", output_activation_function="linear"):
@@ -282,13 +288,12 @@ class GeneticAi:
             # Faire une liste triés du meilleur au pire et ne garder que les 1/10
             precisions = {nn: self.get_precision(nn, training_data) for nn in self.population}
             precisions_sorted = sorted(precisions.items(), key=lambda x: x[1])
-            n_best = max(1, self.population_size // 10)
+            n_best = max(1, self.population_size // 5)
             best_networks = [nn for nn, _ in precisions_sorted[:n_best]]
             best = best_networks[0]
             err  = precisions[best]
             errors.append(err)
             print(f"Epoch {i+1}/{epochs} — meilleure erreur = {err:.4f}")
-
 
             # Recréer la population avec les 1/10 qui sont les mêmes et les autres sont des dérivés des 1/10 meilleurs
             best_index = 0 # Index de best_networks
@@ -297,7 +302,6 @@ class GeneticAi:
                 if idx < n_best:
                     self.population[idx] = best_networks[idx]
                     continue
-
 
                 error = precisions[nn]
                 copy(best_networks[best_index], nn)
@@ -326,8 +330,8 @@ class GeneticAi:
 
         results = 0
 
-        for input, output in training_data.items():
-            results += self.error(neural_network.prediction(input), output) # Calculer erreur relative
+        for input_, output in training_data.items():
+            results += self.error(neural_network.prediction(input_), output) # Calculer erreur relative
 
         return results / len(training_data)
 

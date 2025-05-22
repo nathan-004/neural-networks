@@ -216,7 +216,7 @@ def sin_x():
 
 def classification_diabete():
     data = importer_table("data/diabetes.csv")
-    limite = int(len(data) * 0.8)
+    limite = int(len(data) * 0.4)
     training_data = {
         tuple(list(line.values())[:-1]): (float(list(line.values())[-1]),)
         for line in data[:limite]
@@ -229,21 +229,31 @@ def classification_diabete():
     }
 
     ai = GeneticAi(
-        population_size=40,
+        population_size=50,
         n_layers=2,
         hidden_size=6,
         n_input=8,
         n_output=1,
-        erreur_calcul="bce",
+        erreur_calcul="erreur_binaire",
         hidden_activation_function="tanh",
         output_activation_function="sigmoid",
     )
 
-    ai.train(training_data, 250, mutation_base=0.1)
+    errors = ai.train(training_data, 500, mutation_base=5)
+    
+    xs = [i for i in range(len(errors))]
+    plt.figure(figsize=(10, 6))
+    plt.plot(xs, errors, label="Erreur", color="blue", linewidth=2)
+    plt.title("Comparaison des prédictions vs vraie fonction")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
     # Évaluation sur les données de test
     score = ai.get_precision(ai.population[0], test_data)
     print(f"Erreur moyenne sur test_data : {score:.4f}")
 
 if __name__ == "__main__":
-   sin_x()
+   classification_diabete()
