@@ -197,7 +197,7 @@ def sin_x():
         erreur_calcul="mse",
     )
 
-    errors = ai.train(training_data, epochs=1000)
+    errors = ai.train(training_data, epochs=750)
 
     for i in range(15):
         print(i, ai.population[0].prediction([i])[0], sin(i), sep=" : ")
@@ -216,7 +216,7 @@ def sin_x():
 
 def classification_diabete():
     data = importer_table("data/diabetes.csv")
-    limite = int(len(data) * 0.4)
+    limite = int(len(data) * 0.2)
     training_data = {
         tuple(list(line.values())[:-1]): (float(list(line.values())[-1]),)
         for line in data[:limite]
@@ -230,7 +230,7 @@ def classification_diabete():
 
     ai = GeneticAi(
         population_size=50,
-        n_layers=2,
+        n_layers=3,
         hidden_size=6,
         n_input=8,
         n_output=1,
@@ -239,7 +239,7 @@ def classification_diabete():
         output_activation_function="sigmoid",
     )
 
-    errors = ai.train(training_data, 500, mutation_base=5)
+    errors = ai.train(training_data, 150, mutation_base=5)
     
     xs = [i for i in range(len(errors))]
     plt.figure(figsize=(10, 6))
