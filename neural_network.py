@@ -1,6 +1,7 @@
 import random
 import math
 from math import exp
+import json
 
 # -----------------------Activation Functions-------------------------
 def relu(z):
@@ -42,6 +43,7 @@ def binary_error(preds, targets):
         loss.append(int(abs(targ-pred) < 0.5))
     return sum(loss) / len(loss)
 
+# --------------------------- Neural Network Operations ---------------------------------
 def copy(neural_network1, neural_network2=None):
     """
     Change the values of the neural_network2 with the values of the neural_network1
@@ -59,6 +61,19 @@ def copy(neural_network1, neural_network2=None):
     for idx, node in enumerate(neural_network1.output_layer):
         neural_network2.output_layer[idx].weights = node.weights.copy()
         neural_network2.output_layer[idx].bias = node.bias
+        
+def save_population(population:list, epochs:int, filename="neural_networks.json"):
+    """
+    Enregistre la population de Neural Networks dans un fichier JSON
+    
+    Parameters
+    ----------
+    population:list
+        Liste contenant des NeuralNetwork
+    epochs:int
+        Nombre d'itération sur les données d'entraînement
+    """
+    
 
 class Node:
     """Prend en entrée la couche précédente pour faire le calcul sur tous les neurones précédents"""
@@ -100,8 +115,7 @@ class Node:
             self.bias = bias
             
         if self.weights is None:
-            self.weights = [random.uniform(self.min_weight, self.max_weight) for _ in range(n_last_node)]
-        
+            self.weights = [random.uniform(self.min_weight, self.max_weight) for _ in range(n_last_node)]    
         if self.bias is None:
             self.bias = random.uniform(self.min_bias, self.max_bias)
             
@@ -226,7 +240,25 @@ class NeuralNetwork:
             node.weights = [node.weights[i] + random.uniform(-cur_variation, cur_variation) for i in range(len(node.weights))]
             node.bias = node.bias + random.uniform(-cur_variation, cur_variation)
 
-    
+    def export(self):
+        """
+        Retourne les valeurs des Noeuds sous forme de liste
+        
+        Returns
+        -------
+        list
+            Liste des couches sous forme de listes de noeuds sous forme de liste contenant les poids et le biais
+            On ignore la couche input
+        """
+        
+        export = []
+        
+        for layer in self.layers:
+            layer_export = []
+            for node in layer:
+                layer_export.append([node.weights, node.bias])
+            export.append(layer_export)
+        
 
 class GeneticAi:
 
