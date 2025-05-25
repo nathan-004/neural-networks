@@ -1,6 +1,12 @@
 # neural-networks
 Entrainement aux réseaux de neurones.
 
+## To Do
+
+- [ ] Ajouter l'import de Réseaux
+
+---
+
 ## Résultats
 
 Voici l'approximation de la fonction `sin(x)` avec cet entraînement :
