@@ -2,6 +2,10 @@ import random
 import math
 from math import exp
 import json
+from copy import deepcopy
+
+class NeuralNetwork():
+    pass
 
 # -----------------------Activation Functions-------------------------
 def relu(z):
@@ -86,6 +90,27 @@ def save_population(population:list, epochs:int, filename="neural_networks.json"
     with open(filename, "w") as f:
         json.dump(stock, f, indent=4)
 
+def crossover(nn1:NeuralNetwork, nn2:NeuralNetwork):
+    """Croisement entre deux réseaux : Moyenne des poids/biais"""
+    child = NeuralNetwork(
+        n_layers=len(nn1.layers), 
+        hidden_size=len(nn1.layers[0]), 
+        n_input=len(nn1.input_layer), 
+        n_output=len(nn1.output_layer),
+        hidden_activation_function=nn1.hidden_activation_function,
+        output_activation_function=nn1.output_activation_function,
+    )
+
+    for i, (l1, l2) in enumerate(zip(nn1.layers, nn2.layers)):
+        for j, (n1, n2) in enumerate(zip(l1, l2)):
+            child.layers[i][j].weights = [(w1 + w2) / 2 for w1, w2 in zip(n1.weights, n2.weights)]
+            child.layers[i][j].bias = (n1.bias + n2.bias) / 2
+
+    for j, (n1, n2) in enumerate(zip(nn1.output_layer, nn2.output_layer)):
+        child.output_layer[j].weights = [(w1 + w2) / 2 for w1, w2 in zip(n1.weights, n2.weights)]
+        child.output_layer[j].bias = (n1.bias + n2.bias) / 2
+
+    return child
 
 class Node:
     """Prend en entrée la couche précédente pour faire le calcul sur tous les neurones précédents"""
@@ -309,7 +334,7 @@ class GeneticAi:
 
         self.population = [NeuralNetwork(n_layers, hidden_size, n_input, n_output, hidden_activation_function, output_activation_function) for _ in range(population_size)] # Liste des réseaux de Neurones
 
-    def train(self, training_data:dict, epochs:int, mutation_base:float=0.1, nn_stockage=None):
+    def train(self, training_data:dict, epochs:int, mutation_base:float=0.1, nn_stockage=None, croisement=False):
         """
         Calcule la précision de chaque Réseau et garde les meilleurs pour les modifier epochs fois
 
@@ -323,6 +348,8 @@ class GeneticAi:
             Variation maximum des valeurs
         nn_stockage:str
             Nom du fichier dans lequel se trouve les réseaux de neurone trouvés
+        croisement:bool
+            True si crossover doit être utilisé au lieu de copy
             
         Returns
         -------
@@ -335,7 +362,7 @@ class GeneticAi:
                 # Faire une liste triés du meilleur au pire et ne garder que les 1/10
                 precisions = {nn: self.get_precision(nn, training_data) for nn in self.population}
                 precisions_sorted = sorted(precisions.items(), key=lambda x: x[1])
-                n_best = max(1, self.population_size // 5)
+                n_best = max(1, self.population_size // 10)
                 best_networks = [nn for nn, _ in precisions_sorted[:n_best]]
                 best = best_networks[0]
                 err  = precisions[best]
@@ -347,12 +374,18 @@ class GeneticAi:
 
                 for idx, nn in enumerate(self.population):
                     if idx < n_best:
-                        self.population[idx] = best_networks[idx]
+                        self.population[idx] = deepcopy(best_networks[idx])
                         continue
 
-                    error = precisions[nn]
-                    copy(best_networks[best_index], nn)
-
+                    best_net = best_networks[best_index]
+                    error = precisions[best_net]
+                    if not croisement:
+                        copy(best_net, nn)
+                    else:
+                        if best_index == len(best_networks) - 1:
+                            copy(crossover(best_net, best_networks[0]), nn)
+                        else:
+                            copy(crossover(best_net, best_networks[best_index+1]), nn)
                     nn.mutate(error, mutation_base)
                 
                     best_index += 1
@@ -361,8 +394,12 @@ class GeneticAi:
                         best_index = 0
         except KeyboardInterrupt:
             pass
+        
+        if nn_stockage is None:
+            save_population(self.population, i)
+        else:
+            save_population(self.population, i, nn_stockage)
 
-        save_population(self.population, i)
         return errors
 
     def get_precision(self, neural_network:NeuralNetwork, training_data:dict):

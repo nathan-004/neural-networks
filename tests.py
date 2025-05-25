@@ -207,7 +207,7 @@ def sin_x():
     xs = [i for i in range(len(errors))]
     plt.figure(figsize=(10, 6))
     plt.plot(xs, errors, label="Erreur", color="blue", linewidth=2)
-    plt.title("Comparaison des prédictions vs vraie fonction")
+    plt.title("Erreur")
     plt.xlabel("x")
     plt.ylabel("y")
     plt.legend()
@@ -229,9 +229,9 @@ def classification_diabete():
     }
 
     ai = GeneticAi(
-        population_size=50,
+        population_size=100,
         n_layers=3,
-        hidden_size=6,
+        hidden_size=10,
         n_input=8,
         n_output=1,
         erreur_calcul="erreur_binaire",
@@ -239,12 +239,12 @@ def classification_diabete():
         output_activation_function="sigmoid",
     )
 
-    errors = ai.train(training_data, 150, mutation_base=5)
+    errors = ai.train(training_data, 500, mutation_base=2, croisement=True)
     
     xs = [i for i in range(len(errors))]
     plt.figure(figsize=(10, 6))
     plt.plot(xs, errors, label="Erreur", color="blue", linewidth=2)
-    plt.title("Comparaison des prédictions vs vraie fonction")
+    plt.title("Erreur")
     plt.xlabel("x")
     plt.ylabel("y")
     plt.legend()
