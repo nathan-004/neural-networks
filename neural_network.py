@@ -3,6 +3,7 @@ import math
 from math import exp
 import json
 from copy import deepcopy
+import time
 
 class NeuralNetwork():
     pass
@@ -334,40 +335,33 @@ class GeneticAi:
 
         self.population = [NeuralNetwork(n_layers, hidden_size, n_input, n_output, hidden_activation_function, output_activation_function) for _ in range(population_size)] # Liste des réseaux de Neurones
 
-    def train(self, training_data:dict, epochs:int, mutation_base:float=0.1, nn_stockage=None, croisement=False):
+    def train(self, training_data:dict, epochs:int, mutation_base:float=0.1, nn_stockage=None, croisement=False, debug=False):
         """
         Calcule la précision de chaque Réseau et garde les meilleurs pour les modifier epochs fois
-
-        Parameters
-        ----------
-        training_data:dict
-            Dictionnaire sous la forme {input:tuple, outputs:tuple}
-        epochs:int
-            Nombre de répétition
-        base_mutation:float
-            Variation maximum des valeurs
-        nn_stockage:str
-            Nom du fichier dans lequel se trouve les réseaux de neurone trouvés
-        croisement:bool
-            True si crossover doit être utilisé au lieu de copy
-            
-        Returns
-        -------
-        list
-            Liste des meilleurs erreurs
         """
         errors = []
         try:
             for i in range(epochs):
+                if debug:
+                    t0 = time.time()
                 # Faire une liste triés du meilleur au pire et ne garder que les 1/10
+                if debug:
+                    t1 = time.time()
                 precisions = {nn: self.get_precision(nn, training_data) for nn in self.population}
+                if debug:
+                    t2 = time.time()
+                    print(f"[DEBUG] Calcul des précisions : {t2-t1:.4f} s")
                 precisions_sorted = sorted(precisions.items(), key=lambda x: x[1])
-                n_best = max(1, self.population_size // 10)
+                n_best = max(1, self.population_size // 3) # 1/3
                 best_networks = [nn for nn, _ in precisions_sorted[:n_best]]
                 best = best_networks[0]
                 err  = precisions[best]
                 errors.append(err)
                 print(f"Epoch {i+1}/{epochs} — meilleure erreur = {err:.4f}")
+
+                if debug:
+                    t3 = time.time()
+                    print(f"[DEBUG] Tri et sélection des meilleurs : {t3-t2:.4f} s")
 
                 # Recréer la population avec les 1/10 qui sont les mêmes et les autres sont des dérivés des 1/10 meilleurs
                 best_index = 0 # Index de best_networks
@@ -392,6 +386,11 @@ class GeneticAi:
 
                     if best_index == n_best:
                         best_index = 0
+
+                if debug:
+                    t4 = time.time()
+                    print(f"[DEBUG] Recréation et mutation de la population : {t4-t3:.4f} s")
+                    print(f"[DEBUG] Temps total pour l'epoch {i+1}: {t4-t0:.4f} s\n")
         except KeyboardInterrupt:
             pass
         

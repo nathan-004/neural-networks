@@ -229,9 +229,9 @@ def classification_diabete():
     }
 
     ai = GeneticAi(
-        population_size=100,
+        population_size=50,
         n_layers=3,
-        hidden_size=10,
+        hidden_size=15,
         n_input=8,
         n_output=1,
         erreur_calcul="erreur_binaire",
@@ -239,7 +239,7 @@ def classification_diabete():
         output_activation_function="sigmoid",
     )
 
-    errors = ai.train(training_data, 500, mutation_base=2, croisement=True)
+    errors = ai.train(training_data, 5000, mutation_base=1, croisement=True, debug=True)
     
     xs = [i for i in range(len(errors))]
     plt.figure(figsize=(10, 6))
