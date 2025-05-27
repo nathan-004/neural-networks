@@ -113,7 +113,7 @@ def save_population(population:list, epochs:int, filename="neural_networks.json"
     with open(filename, "w") as f:
         json.dump(stock, f, indent=4)
         
-def import_data(filename="neural_networks.json"):
+def import_data(filename="neural_networks.json") -> dict:
     """Retourne les données sous forme de dictionnaire"""
     with open(filename, "r") as f:
         dictionnaire = json.load(f)
@@ -313,10 +313,18 @@ class NeuralNetwork:
         Parameters
         ----------
         layers:list
-            Liste sous forme [Layers dont output [Représentation d'un noeud []]
+            Liste sous forme [Layers dont output [Représentation d'un noeud [Poids, biais]]
+            Retourné par la fonction `import_data`
         """
-        pass
         
+        for idx, layer in enumerate(layers):
+            for n_idx, node in enumerate(layer):
+                if idx < len(layers) - 1:
+                    self.layers[idx][n_idx].weights = node[0].copy()
+                    self.layers[idx][n_idx].bias = node[1]
+                else:
+                    self.output_layer[n_idx].weights = node[0].copy()
+                    self.output_layer[n_idx].bias = node[1]
 
 class GeneticAi:
 
@@ -449,7 +457,13 @@ class GeneticAi:
         filename:str
         """
         
-        pass
+        data = import_data(filename)
+        header = data.pop("Parameters")
+
+        for current_nn, values in zip(self.population, data) :
+            current_nn.import_nn(values)
+
+        # Utiliser header
 
 if __name__ == "__main__":
     import_data()
