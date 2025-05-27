@@ -66,7 +66,29 @@ def copy(neural_network1, neural_network2=None):
     for idx, node in enumerate(neural_network1.output_layer):
         neural_network2.output_layer[idx].weights = node.weights.copy()
         neural_network2.output_layer[idx].bias = node.bias
-        
+
+def crossover(nn1:NeuralNetwork, nn2:NeuralNetwork):
+    """Croisement entre deux réseaux : Moyenne des poids/biais"""
+    child = NeuralNetwork(
+        n_layers=len(nn1.layers), 
+        hidden_size=len(nn1.layers[0]), 
+        n_input=len(nn1.input_layer), 
+        n_output=len(nn1.output_layer),
+        hidden_activation_function=nn1.hidden_activation_function,
+        output_activation_function=nn1.output_activation_function,
+    )
+
+    for i, (l1, l2) in enumerate(zip(nn1.layers, nn2.layers)):
+        for j, (n1, n2) in enumerate(zip(l1, l2)):
+            child.layers[i][j].weights = [(w1 + w2) / 2 for w1, w2 in zip(n1.weights, n2.weights)]
+            child.layers[i][j].bias = (n1.bias + n2.bias) / 2
+
+    for j, (n1, n2) in enumerate(zip(nn1.output_layer, nn2.output_layer)):
+        child.output_layer[j].weights = [(w1 + w2) / 2 for w1, w2 in zip(n1.weights, n2.weights)]
+        child.output_layer[j].bias = (n1.bias + n2.bias) / 2
+
+    return child
+
 def save_population(population:list, epochs:int, filename="neural_networks.json"):
     """
     Enregistre la population de Neural Networks dans un fichier JSON
@@ -90,28 +112,13 @@ def save_population(population:list, epochs:int, filename="neural_networks.json"
 
     with open(filename, "w") as f:
         json.dump(stock, f, indent=4)
-
-def crossover(nn1:NeuralNetwork, nn2:NeuralNetwork):
-    """Croisement entre deux réseaux : Moyenne des poids/biais"""
-    child = NeuralNetwork(
-        n_layers=len(nn1.layers), 
-        hidden_size=len(nn1.layers[0]), 
-        n_input=len(nn1.input_layer), 
-        n_output=len(nn1.output_layer),
-        hidden_activation_function=nn1.hidden_activation_function,
-        output_activation_function=nn1.output_activation_function,
-    )
-
-    for i, (l1, l2) in enumerate(zip(nn1.layers, nn2.layers)):
-        for j, (n1, n2) in enumerate(zip(l1, l2)):
-            child.layers[i][j].weights = [(w1 + w2) / 2 for w1, w2 in zip(n1.weights, n2.weights)]
-            child.layers[i][j].bias = (n1.bias + n2.bias) / 2
-
-    for j, (n1, n2) in enumerate(zip(nn1.output_layer, nn2.output_layer)):
-        child.output_layer[j].weights = [(w1 + w2) / 2 for w1, w2 in zip(n1.weights, n2.weights)]
-        child.output_layer[j].bias = (n1.bias + n2.bias) / 2
-
-    return child
+        
+def import_data(filename="neural_networks.json"):
+    """Retourne les données sous forme de dictionnaire"""
+    with open(filename, "r") as f:
+        dictionnaire = json.load(f)
+        
+    return dictionnaire
 
 class Node:
     """Prend en entrée la couche précédente pour faire le calcul sur tous les neurones précédents"""
@@ -298,6 +305,17 @@ class NeuralNetwork:
             export.append(layer_export)
         
         return export
+    
+    def import_nn(self, layers:list):
+        """
+        Importe le réseau de neurones
+        
+        Parameters
+        ----------
+        layers:list
+            Liste sous forme [Layers dont output [Représentation d'un noeud []]
+        """
+        pass
         
 
 class GeneticAi:
@@ -417,9 +435,21 @@ class GeneticAi:
         results = 0
 
         for input_, output in training_data.items():
-            results += self.error(neural_network.prediction(input_), output) # Calculer erreur relative
+            pred = neural_network.prediction(input_)
+            results += self.error(pred, output) # Calculer erreur relative
 
         return results / len(training_data)
+    
+    def import_population(self, filename="neural_networks.json"):
+        """
+        Crée une population basée sur le contenu du fichier
+        
+        Parameters
+        ----------
+        filename:str
+        """
+        
+        pass
 
 if __name__ == "__main__":
-    pass
+    import_data()
