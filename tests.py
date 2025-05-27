@@ -141,12 +141,22 @@ def celsius_to_fahrenheit():
                n_input=1,
                n_output=1)
     
-    ai.train(training_data, epochs=2000)
+    errors = ai.train(training_data, epochs=2000)
     for c in [-40, -10, 0, 10, 20, 25, 30, 37, 40, 100]:
         print(f"{c} : {ai.population[0].prediction([c])[0]} : {32 + c * 9/5:.2f}")
 
     print(ai.population[0].output_layer[0].weights, ai.population[0].output_layer[0].bias)
     graph_results(ai.population[0], lambda x : 32+x*(9/5), -100, 100)
+    
+    xs = [i for i in range(len(errors))]
+    plt.figure(figsize=(10, 6))
+    plt.plot(xs, errors, label="Erreur", color="blue", linewidth=2)
+    plt.title("Erreur")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 def multiplication_2():
     training_data = training_datas["Mult2"]
@@ -178,12 +188,22 @@ def power_2():
         erreur_calcul="mse",
     )
     
-    ai.train(training_data, epochs=1000)
+    errors = ai.train(training_data, epochs=1000)
 
     for i in range(15):
         print(i, ai.population[0].prediction([i])[0], i**2, sep=" : ")
 
     graph_results(ai.population[0], lambda x : x**2, -15, 15)
+    
+    xs = [i for i in range(len(errors))]
+    plt.figure(figsize=(10, 6))
+    plt.plot(xs, errors, label="Erreur", color="blue", linewidth=2)
+    plt.title("Erreur")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 def sin_x():
     training_data = training_datas["Sin"]
@@ -216,7 +236,7 @@ def sin_x():
 
 def classification_diabete():
     data = importer_table("data/diabetes.csv")
-    limite = int(len(data) * 0.2)
+    limite = int(len(data) * 0.1)
     training_data = {
         tuple(list(line.values())[:-1]): (float(list(line.values())[-1]),)
         for line in data[:limite]
@@ -239,7 +259,7 @@ def classification_diabete():
         output_activation_function="sigmoid",
     )
 
-    errors = ai.train(training_data, 5000, mutation_base=1, croisement=True, debug=True)
+    errors = ai.train(training_data, 5000, mutation_base=5, croisement=False, debug=False)
     
     xs = [i for i in range(len(errors))]
     plt.figure(figsize=(10, 6))
