@@ -1,6 +1,5 @@
 import random
 import math
-from math import exp
 import json
 from copy import deepcopy
 import time
@@ -45,7 +44,7 @@ def bce(y_pred, y_true):
 def binary_error(preds, targets):
     loss = []
     for targ, pred in zip(targets, preds):
-        loss.append(int(abs(targ-pred) < 0.5))
+        loss.append(abs(targ-pred))
     return sum(loss) / len(loss)
 
 # --------------------------- Neural Network Operations ---------------------------------
@@ -117,7 +116,7 @@ def import_data(filename="neural_networks.json") -> dict:
     """Retourne les données sous forme de dictionnaire"""
     with open(filename, "r") as f:
         dictionnaire = json.load(f)
-        
+
     return dictionnaire
 
 class Node:
@@ -304,6 +303,11 @@ class NeuralNetwork:
                 layer_export.append([node.weights, node.bias])
             export.append(layer_export)
         
+        layer_export = []
+        for node in self.output_layer:
+            layer_export.append([node.weights, node.bias])
+        export.append(layer_export)
+        
         return export
     
     def import_nn(self, layers:list):
@@ -316,10 +320,9 @@ class NeuralNetwork:
             Liste sous forme [Layers dont output [Représentation d'un noeud [Poids, biais]]
             Retourné par la fonction `import_data`
         """
-        
         for idx, layer in enumerate(layers):
             for n_idx, node in enumerate(layer):
-                if idx < len(layers) - 1:
+                if idx < len(layers)-1:
                     self.layers[idx][n_idx].weights = node[0].copy()
                     self.layers[idx][n_idx].bias = node[1]
                 else:
@@ -334,6 +337,8 @@ class GeneticAi:
         "bce": bce,
         "erreur_binaire": binary_error,
     }
+    
+    start_epoch = 0 # Epoch à commencer avec
 
     def __init__(self, population_size, n_layers,hidden_size, n_input, n_output, erreur_calcul="mse", hidden_activation_function:str="relu", output_activation_function="linear"):
         """
@@ -361,13 +366,20 @@ class GeneticAi:
 
         self.population = [NeuralNetwork(n_layers, hidden_size, n_input, n_output, hidden_activation_function, output_activation_function) for _ in range(population_size)] # Liste des réseaux de Neurones
 
-    def train(self, training_data:dict, epochs:int, mutation_base:float=0.1, nn_stockage=None, croisement=False, debug=False):
+    def train(self, training_data:dict, epochs:int, mutation_base:float=0.1, nn_stockage=None, croisement=False, debug=False, filename=None):
         """
         Calcule la précision de chaque Réseau et garde les meilleurs pour les modifier epochs fois
         """
+        if filename is not None:
+            if filename != "":
+                self.import_population(filename)
+            else:
+                self.import_population()
+        
         errors = []
         try:
             for i in range(epochs):
+                i += self.start_epoch
                 if debug:
                     t0 = time.time()
                 # Faire une liste triés du meilleur au pire et ne garder que les 1/10
@@ -459,11 +471,11 @@ class GeneticAi:
         
         data = import_data(filename)
         header = data.pop("Parameters")
-
+        
         for current_nn, values in zip(self.population, data) :
-            current_nn.import_nn(values)
+            current_nn.import_nn(data[values])
 
-        # Utiliser header
+        self.start_epoch = header["Epochs"]
 
 if __name__ == "__main__":
     import_data()

@@ -259,7 +259,7 @@ def classification_diabete():
         output_activation_function="sigmoid",
     )
 
-    errors = ai.train(training_data, 5000, mutation_base=5, croisement=False, debug=False)
+    errors = ai.train(training_data, 5000, mutation_base=5, croisement=False, debug=False, filename="")
     
     xs = [i for i in range(len(errors))]
     plt.figure(figsize=(10, 6))
