@@ -3,7 +3,7 @@ Entrainement aux réseaux de neurones.
 
 ## To Do
 
-- [ ] Ajouter l'import de Réseaux
+- [X] Ajouter l'import de Réseaux
 
 ---
 
