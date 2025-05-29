@@ -3,6 +3,7 @@ import math
 import json
 from copy import deepcopy
 import time
+import numpy as np
 
 class NeuralNetwork():
     pass
@@ -10,17 +11,17 @@ class NeuralNetwork():
 # -----------------------Activation Functions-------------------------
 def relu(z):
     """Rectified Linear Units (ReLU)"""
-    return max(0, z)
+    return np.maximum(0, z)
 
 def sigmoid(z):
     """Sigmoid activation"""
-    return 1 / (1 + math.exp(-z))
+    return 1 / (1 + np.exp(-z))
 
 def linear(z):
     return z
 
 def tanh(x):
-    return math.tanh(x)
+    return np.tanh(x)
 
 # ----------------------Cost Functions------------------------------
 def erreur_relative(liste1, liste2):
@@ -48,23 +49,20 @@ def binary_error(preds, targets):
     return sum(loss) / len(loss)
 
 # --------------------------- Neural Network Operations ---------------------------------
-def copy(neural_network1, neural_network2=None):
+def copy(neural_network1, neural_network2):
     """
-    Change the values of the neural_network2 with the values of the neural_network1
-    
-    If neural_network2 is not specified : creates a new neural_network
+    Copie les poids et biais de neural_network1 vers neural_network2.
+
+    Parameters
+    ----------
+    neural_network1 : NeuralNetwork
+    neural_network2 : NeuralNetwork
     """
-    if neural_network2 is None:
-        raise AssertionError("A implementer")
 
-    for idx, layer in enumerate(neural_network1.layers):
-        for idx_node, node in enumerate(layer):
-            neural_network2.layers[idx][idx_node].weights = node.weights.copy()
-            neural_network2.layers[idx][idx_node].bias = node.bias
+    for i in range(len(neural_network1.weights)):
+        neural_network2.weights[i] = np.copy(neural_network1.weights[i])
+        neural_network2.biases[i] = np.copy(neural_network1.biases[i])
 
-    for idx, node in enumerate(neural_network1.output_layer):
-        neural_network2.output_layer[idx].weights = node.weights.copy()
-        neural_network2.output_layer[idx].bias = node.bias
 
 def crossover(nn1:NeuralNetwork, nn2:NeuralNetwork):
     """Croisement entre deux réseaux : Moyenne des poids/biais"""
@@ -88,7 +86,7 @@ def crossover(nn1:NeuralNetwork, nn2:NeuralNetwork):
 
     return child
 
-def save_population(population:list, epochs:int, filename="neural_networks.json"):
+def save_population(population:list, epochs:int, errors:list,filename="neural_networks.json"):
     """
     Enregistre la population de Neural Networks dans un fichier JSON
     
@@ -98,11 +96,14 @@ def save_population(population:list, epochs:int, filename="neural_networks.json"
         Liste contenant des NeuralNetwork
     epochs:int
         Nombre d'itération sur les données d'entraînement
+    errors:list
+        Liste des meilleurs erreurs dans l'entraînement
     """
     stock = {
         "Parameters" : {
             "Epochs": epochs,
             "Population_Size": len(population),
+            "Errors": errors,
         }
     }
 
@@ -119,8 +120,8 @@ def import_data(filename="neural_networks.json") -> dict:
 
     return dictionnaire
 
-class Node:
-    """Prend en entrée la couche précédente pour faire le calcul sur tous les neurones précédents"""
+class NeuralNetwork:
+    """Réseau neuronal qui utilise des matrices de poids et de biais au lieu d'objets Node"""
     
     min_weight = -1
     max_weight = 1
@@ -132,203 +133,102 @@ class Node:
         "linear": linear,
         "tanh": tanh,
     }
-    
-    def __init__(self, last_layer:list, weights=None, bias=None):
-        """
-        Parameters
-        ----------
-        last_layer:list
-            Liste des objets Node Précédents
-        weights:list
-            Liste des weights pour chaques input
-        bias:float
-            Nombre à additionner au résultat
-        """
-        n_last_node = len(last_layer)
-        self.last_layer = last_layer
-        self.weights = None
-        self.bias = None 
-        
-        if not weights is None:
-            if len(weights) == n_last_node:
-                self.weights = weights
-            else:
-                raise AssertionError("Nombre de poids différent de celui des Nodes")
-        
-        if not bias is None:
-            self.bias = bias
-            
-        if self.weights is None:
-            self.weights = [random.uniform(self.min_weight, self.max_weight) for _ in range(n_last_node)]    
-        if self.bias is None:
-            self.bias = random.uniform(self.min_bias, self.max_bias)
-            
-        self.value = None 
-            
-    def calculate(self, activation_function="sigmoid"):
-        """Calcule la nouvelle valeur du Noeud avec les valeurs des noeuds précédents"""
-        if not activation_function in self.activation_functions:
-            raise AssertionError("La fonction d'activation donnée n'existe pas")    
-        f = self.activation_functions[activation_function]
-        
-        # Somme de la valeur * le poids de chaque noeuds + le biais
-        res = 0
-        
-        for idx, node in enumerate(self.last_layer):
-            w = self.weights[idx]
-            res += node.value*w
-        
-        res = f(res+self.bias)
-        self.value = res
-        return res
-            
-class InputNode:
-    """Classe qui contient les valeurs input"""
-    def __init__(self, value):
-        self.value = value
-       
-class NeuralNetwork:
-    """Contient les couches contenant les noeuds"""
 
-    variation_base = 0.1
-
-    def __init__(self, n_layers,hidden_size, n_input, n_output, hidden_activation_function:str="relu", output_activation_function="linear"):
-        """
-        Parameters
-        ----------
-        n_layers:int
-            Nombre de couches
-        hidden_size:int
-            Nombre de noeuds pour chaques couches
-        n_input:int
-            Taille de l'input
-        n_output:int
-            Taille de l'output
-        """
+    def __init__(self, n_layers, hidden_size, n_input, n_output, hidden_activation_function="relu", output_activation_function="linear"):
+        if hidden_activation_function not in self.activation_functions or output_activation_function not in self.activation_functions:
+            raise ValueError("La fonction d'activation spécifiée n'existe pas")
+        
         self.hidden_activation_function = hidden_activation_function
         self.output_activation_function = output_activation_function
 
-        self.input_layer = [InputNode(0) for _ in range(n_input)]
+        # Exemple : [8, 10, 10, 1] → input, 2 couches cachées, output
+        layers = [n_input] + [hidden_size] * n_layers + [n_output]
 
-        self.layers = [] # Liste de listes de noeuds
-        
-        for i in range(n_layers):
-            layer_nodes = []
-            for _ in range(hidden_size): # Nombre de noeuds dans une couche
-                if i == 0:
-                    layer_nodes.append(Node(self.input_layer))
-                else:
-                    layer_nodes.append(Node(self.layers[-1]))
-            self.layers.append(layer_nodes)
-        
-        if n_layers != 0:
-            self.output_layer = [Node(self.layers[-1]) for _ in range(n_output)]
-        else:
-            self.output_layer = [Node(self.input_layer) for _ in range(n_output)]
+        self.weights = []
+        self.biases = []
 
-    def prediction(self, inputs:list=[]):
+        for i in range(len(layers) - 1):
+            W = np.random.uniform(self.min_weight, self.max_weight, (layers[i + 1], layers[i]))
+            b = np.random.uniform(self.min_bias, self.max_bias, (layers[i + 1], 1))
+            self.weights.append(W)
+            self.biases.append(b)
+
+    def prediction(self, inputs):
         """
-        Calcule les outputs en fonction des valeurs en input
-
-        Parameters
-        ----------
-        inputs:list
-            Valeurs numériques
+        Calcule la sortie du réseau avec les entrées.
+        inputs: liste de valeurs d'entrée
         """
+        a = np.array(inputs).reshape(-1, 1)  # vecteur colonne
 
-        for n in inputs:
-            if type(n) != int and type(n) != float:
-                raise AssertionError(f"{type(n)} trouvé au lieu de {int}")
-        
-        if len(inputs) != len(self.input_layer):
-            raise AssertionError(f"{len(inputs)} inputs trouvés au lieu de {len(self.input_layer)}")
-        
-        # Initier les valeurs dans `input_layer`
-        for idx, val in enumerate(inputs):
-            self.input_layer[idx].value = val
+        for idx, (W, b) in enumerate(zip(self.weights, self.biases)):
+            z = np.dot(W, a) + b
+            if idx < len(self.weights) - 1:
+                activation = self.activation_functions[self.hidden_activation_function]
+            else:
+                activation = self.activation_functions[self.output_activation_function]
+            a = activation(z)
 
-        # Calculer les valeurs pour chaques couches
-        for idx, layer in enumerate(self.layers):
-            for node in layer:
-                node.calculate(activation_function=self.hidden_activation_function)
-
-        # Calculer les valeurs `output`
-        for node in self.output_layer:
-            node.calculate(activation_function=self.output_activation_function)
-
-        return [node.value for node in self.output_layer]
+        return a.flatten().tolist()
     
     def mutate(self, error, mutation_base=None):
         """
-        Modifie les poids et les biais des noeuds aléatoirement dans une range qui varie en fonction de l'erreur
+        Fait muter les poids et les biais aléatoirement selon une intensité liée à l'erreur.
 
         Parameters
         ----------
-        error:float
-            Coefficient d'erreur, peut être négatif
+        error : float
+            Erreur absolue
+        mutation_base : float, optional
+            Valeur de base pour la mutation (amplitude max). Si None, on utilise self.variation_base.
         """
         if mutation_base is None:
             base_mutation = self.variation_base
         else:
             base_mutation = mutation_base
-        cur_variation = base_mutation * min(abs(error), 1.0)
-        
-        # Modifier pour toutes les couches
-        for idx, layer in enumerate(self.layers):
-            for node in layer:
-                node.weights = [node.weights[i] + random.uniform(-cur_variation, cur_variation) for i in range(len(node.weights))]
-                node.bias = node.bias + random.uniform(-cur_variation, cur_variation)
 
-        # Modifier pour l'output
-        for node in self.output_layer:
-            node.weights = [node.weights[i] + random.uniform(-cur_variation, cur_variation) for i in range(len(node.weights))]
-            node.bias = node.bias + random.uniform(-cur_variation, cur_variation)
+        cur_variation = base_mutation * abs(error)
+
+        # Mutation aléatoire sur tous les poids et biais
+        for i in range(len(self.weights)):
+            variation_W = np.random.uniform(-cur_variation, cur_variation, self.weights[i].shape) # Variation
+            variation_b = np.random.uniform(-cur_variation, cur_variation, self.biases[i].shape)
+
+            self.weights[i] += variation_W
+            self.biases[i] += variation_b
 
     def export(self):
         """
-        Retourne les valeurs des Noeuds sous forme de liste
-        
+        Retourne les poids et biais sous forme de liste pour chaque couche (sauf input)
+
         Returns
         -------
         list
-            Liste des couches sous forme de listes de noeuds sous forme de liste contenant les poids et le biais
-            On ignore la couche input
+            Liste de tuples (poids, biais) pour chaque couche. Chaque poids est une matrice NumPy, chaque biais est un vecteur.
         """
-        
         export = []
-        
-        for layer in self.layers:
-            layer_export = []
-            for node in layer:
-                layer_export.append([node.weights, node.bias])
-            export.append(layer_export)
-        
-        layer_export = []
-        for node in self.output_layer:
-            layer_export.append([node.weights, node.bias])
-        export.append(layer_export)
-        
+        for W, b in zip(self.weights, self.biases):
+            export.append([W.tolist(), b.tolist()])
         return export
-    
-    def import_nn(self, layers:list):
+
+    def import_nn(self, layers):
         """
-        Importe le réseau de neurones
-        
+        Importe les poids et biais d'un réseau de neurones vectorisé.
+
         Parameters
         ----------
-        layers:list
-            Liste sous forme [Layers dont output [Représentation d'un noeud [Poids, biais]]
-            Retourné par la fonction `import_data`
+        layers : list
+            Liste contenant les poids et biais sous forme de listes (générés par la méthode export()).
         """
-        for idx, layer in enumerate(layers):
-            for n_idx, node in enumerate(layer):
-                if idx < len(layers)-1:
-                    self.layers[idx][n_idx].weights = node[0].copy()
-                    self.layers[idx][n_idx].bias = node[1]
-                else:
-                    self.output_layer[n_idx].weights = node[0].copy()
-                    self.output_layer[n_idx].bias = node[1]
+        self.weights = []
+        self.biases = []
+        
+        for W_list, b_list in layers:
+            W = np.array(W_list)
+            b = np.array(b_list)
+            self.weights.append(W)
+            self.biases.append(b)
 
+        
 class GeneticAi:
 
     error_functions = {
@@ -339,6 +239,7 @@ class GeneticAi:
     }
     
     start_epoch = 0 # Epoch à commencer avec
+    start_errors = [] # Liste des erreurs à poursuivre
 
     def __init__(self, population_size, n_layers,hidden_size, n_input, n_output, erreur_calcul="mse", hidden_activation_function:str="relu", output_activation_function="linear"):
         """
@@ -376,7 +277,7 @@ class GeneticAi:
             else:
                 self.import_population()
         
-        errors = []
+        errors = self.start_errors # Passage par référence
         try:
             for i in range(epochs):
                 i += self.start_epoch
@@ -395,7 +296,7 @@ class GeneticAi:
                 best = best_networks[0]
                 err  = precisions[best]
                 errors.append(err)
-                print(f"Epoch {i+1}/{epochs} — meilleure erreur = {err:.4f}")
+                print(f"Epoch {i+1}/{epochs+self.start_epoch} — meilleure erreur = {err:.4f}")
 
                 if debug:
                     t3 = time.time()
@@ -433,9 +334,9 @@ class GeneticAi:
             pass
         
         if nn_stockage is None:
-            save_population(self.population, i)
+            save_population(self.population, i, errors)
         else:
-            save_population(self.population, i, nn_stockage)
+            save_population(self.population, i, errors, nn_stockage)
 
         return errors
 
@@ -476,6 +377,7 @@ class GeneticAi:
             current_nn.import_nn(data[values])
 
         self.start_epoch = header["Epochs"]
+        self.start_errors = header["Errors"]
 
 if __name__ == "__main__":
-    import_data()
+    pass

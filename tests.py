@@ -13,6 +13,16 @@ def importer_table(fichier):
             u.append(dict)
     return u
 
+def delete_same(table):
+    """Retourne la table en supprimant toutes les lignes présentes plusieurs fois"""
+    t = []
+
+    for ligne in table:
+        if not ligne in t:
+            t.append(ligne)
+
+    return t
+
 def graph_results(model:NeuralNetwork, true_func, min:int, max:int):
     """
     Affiche un graphique comparant les prédictions d'un réseau de neurones à une fonction réelle.
@@ -217,7 +227,7 @@ def sin_x():
         erreur_calcul="mse",
     )
 
-    errors = ai.train(training_data, epochs=750)
+    errors = ai.train(training_data, epochs=5000, filename="")
 
     for i in range(15):
         print(i, ai.population[0].prediction([i])[0], sin(i), sep=" : ")
@@ -236,7 +246,10 @@ def sin_x():
 
 def classification_diabete():
     data = importer_table("data/diabetes.csv")
-    limite = int(len(data) * 0.1)
+    print(len(data))
+    data = delete_same(data)
+    print(len(data))
+    limite = int(len(data) * 0.30)
     training_data = {
         tuple(list(line.values())[:-1]): (float(list(line.values())[-1]),)
         for line in data[:limite]
@@ -259,7 +272,7 @@ def classification_diabete():
         output_activation_function="sigmoid",
     )
 
-    errors = ai.train(training_data, 5000, mutation_base=5, croisement=False, debug=False, filename="")
+    errors = ai.train(training_data, 5000, mutation_base=1, croisement=False, debug=False, filename="")
     
     xs = [i for i in range(len(errors))]
     plt.figure(figsize=(10, 6))
