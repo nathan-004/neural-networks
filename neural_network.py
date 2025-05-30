@@ -7,6 +7,9 @@ import numpy as np
 class NeuralNetwork():
     pass
 
+class GeneticAI():
+    pass
+
 # -----------------------Activation Functions-------------------------
 def relu(z):
     """Rectified Linear Units (ReLU)"""
@@ -117,6 +120,31 @@ def import_data(filename="neural_networks.json") -> dict:
         dictionnaire = json.load(f)
 
     return dictionnaire
+
+# ----------------------------------Training Operations-------------------------------------
+def curriculum_learning(model:GeneticAI, total_epochs:int, training_data:list, limites:list, filename=""):
+    """
+    Entraîne le modèle sur une petite quantité de donnée puis augmente la taille
+
+    Parameters
+    ----------
+    model:GeneticAI
+    total_epochs:int
+        Nombre total d'itérations
+    training_data:list
+        Données d'entraînement
+    limites:list
+        Listes de nombres entre 0 et 1 définissant le pourcentage de données utilisées dans training_data
+    """
+
+    for idx, limite in enumerate(limites):
+        limite_idx = int(len(training_data) * limite)
+        data = training_data[:limite_idx]
+        epoch = total_epochs // len(limites)
+
+        errors = model.train(data, epoch, mutation_base=5, croisement=False, debug=False, filename="")
+    
+    return errors
 
 class NeuralNetwork:
     """Réseau neuronal qui utilise des matrices de poids et de biais au lieu d'objets Node"""
