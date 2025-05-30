@@ -1,4 +1,3 @@
-import random
 import math
 import json
 from copy import deepcopy
@@ -64,29 +63,26 @@ def copy(neural_network1, neural_network2):
         neural_network2.biases[i] = np.copy(neural_network1.biases[i])
 
 
-def crossover(nn1:NeuralNetwork, nn2:NeuralNetwork):
+def crossover(nn1: NeuralNetwork, nn2: NeuralNetwork):
     """Croisement entre deux réseaux : Moyenne des poids/biais"""
     child = NeuralNetwork(
-        n_layers=len(nn1.layers), 
-        hidden_size=len(nn1.layers[0]), 
-        n_input=len(nn1.input_layer), 
-        n_output=len(nn1.output_layer),
+        n_layers=len(nn1.weights) - 1,
+        hidden_size=nn1.weights[0].shape[1],  # nombre de neurones dans les couches cachées
+        n_input=nn1.weights[0].shape[1],
+        n_output=nn1.weights[-1].shape[0],
         hidden_activation_function=nn1.hidden_activation_function,
         output_activation_function=nn1.output_activation_function,
     )
 
-    for i, (l1, l2) in enumerate(zip(nn1.layers, nn2.layers)):
-        for j, (n1, n2) in enumerate(zip(l1, l2)):
-            child.layers[i][j].weights = [(w1 + w2) / 2 for w1, w2 in zip(n1.weights, n2.weights)]
-            child.layers[i][j].bias = (n1.bias + n2.bias) / 2
-
-    for j, (n1, n2) in enumerate(zip(nn1.output_layer, nn2.output_layer)):
-        child.output_layer[j].weights = [(w1 + w2) / 2 for w1, w2 in zip(n1.weights, n2.weights)]
-        child.output_layer[j].bias = (n1.bias + n2.bias) / 2
+    # Crossover sur chaque couche
+    for i in range(len(nn1.weights)):
+        child.weights[i] = (nn1.weights[i] + nn2.weights[i]) / 2
+        child.biases[i] = (nn1.biases[i] + nn2.biases[i]) / 2
 
     return child
 
-def save_population(population:list, epochs:int, errors:list,filename="neural_networks.json"):
+
+def save_population(population:list, epochs:int, errors:list, t:int, filename="neural_networks.json"):
     """
     Enregistre la population de Neural Networks dans un fichier JSON
     
@@ -103,6 +99,8 @@ def save_population(population:list, epochs:int, errors:list,filename="neural_ne
         "Parameters" : {
             "Epochs": epochs,
             "Population_Size": len(population),
+            "Training_Time": t,
+            "Training_Time_m": t // 60,
             "Errors": errors,
         }
     }
@@ -240,6 +238,7 @@ class GeneticAi:
     
     start_epoch = 0 # Epoch à commencer avec
     start_errors = [] # Liste des erreurs à poursuivre
+    start_time = 0
 
     def __init__(self, population_size, n_layers,hidden_size, n_input, n_output, erreur_calcul="mse", hidden_activation_function:str="relu", output_activation_function="linear"):
         """
@@ -278,6 +277,7 @@ class GeneticAi:
                 self.import_population()
         
         errors = self.start_errors # Passage par référence
+        start = time.time()
         try:
             for i in range(epochs):
                 i += self.start_epoch
@@ -332,11 +332,12 @@ class GeneticAi:
                     print(f"[DEBUG] Temps total pour l'epoch {i+1}: {t4-t0:.4f} s\n")
         except KeyboardInterrupt:
             pass
-        
+
+        duration = self.start_time + time.time() - start
         if nn_stockage is None:
-            save_population(self.population, i, errors)
+            save_population(self.population, i, errors, duration)
         else:
-            save_population(self.population, i, errors, nn_stockage)
+            save_population(self.population, i, errors, duration, nn_stockage)
 
         return errors
 
@@ -378,6 +379,7 @@ class GeneticAi:
 
         self.start_epoch = header["Epochs"]
         self.start_errors = header["Errors"]
+        self.start_time = header["Training_Time"]
 
 if __name__ == "__main__":
     pass
