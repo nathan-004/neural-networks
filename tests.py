@@ -249,7 +249,7 @@ def classification_diabete():
     print(len(data))
     data = delete_same(data)
     print(len(data))
-    limite = int(len(data) * 0.30)
+    limite = int(len(data) * 0.40)
     training_data = {
         tuple(list(line.values())[:-1]): (float(list(line.values())[-1]),)
         for line in data[:limite]
@@ -272,7 +272,7 @@ def classification_diabete():
         output_activation_function="sigmoid",
     )
 
-    errors = ai.train(training_data, 5000, mutation_base=1, croisement=False, debug=False, filename="")
+    errors = curriculum_learning(ai, 20000, training_data, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6,0.7, 0.8, 0.9])
     
     xs = [i for i in range(len(errors))]
     plt.figure(figsize=(10, 6))
