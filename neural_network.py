@@ -122,7 +122,7 @@ def import_data(filename="neural_networks.json") -> dict:
     return dictionnaire
 
 # ----------------------------------Training Operations-------------------------------------
-def curriculum_learning(model:GeneticAI, total_epochs:int, training_data:list, limites:list, filename=""):
+def curriculum_learning(model:GeneticAI, total_epochs:int, training_data:dict, limites:list, filename=""):
     """
     Entraîne le modèle sur une petite quantité de donnée puis augmente la taille
 
@@ -131,7 +131,7 @@ def curriculum_learning(model:GeneticAI, total_epochs:int, training_data:list, l
     model:GeneticAI
     total_epochs:int
         Nombre total d'itérations
-    training_data:list
+    training_data:dict
         Données d'entraînement
     limites:list
         Listes de nombres entre 0 et 1 définissant le pourcentage de données utilisées dans training_data
@@ -139,7 +139,8 @@ def curriculum_learning(model:GeneticAI, total_epochs:int, training_data:list, l
 
     for idx, limite in enumerate(limites):
         limite_idx = int(len(training_data) * limite)
-        data = training_data[:limite_idx]
+        values = list(training_data.keys())[:limite_idx]
+        data = {key: training_data[key] for key in values}
         epoch = total_epochs // len(limites)
 
         errors = model.train(data, epoch, mutation_base=5, croisement=False, debug=False, filename="")
@@ -411,3 +412,4 @@ class GeneticAi:
 
 if __name__ == "__main__":
     pass
+
