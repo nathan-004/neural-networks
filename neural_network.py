@@ -3,6 +3,7 @@ import json
 from copy import deepcopy
 import time
 import numpy as np
+import random
 
 class NeuralNetwork():
     pass
@@ -136,14 +137,15 @@ def curriculum_learning(model:GeneticAI, total_epochs:int, training_data:dict, l
     limites:list
         Listes de nombres entre 0 et 1 définissant le pourcentage de données utilisées dans training_data
     """
-
+    
     for idx, limite in enumerate(limites):
         limite_idx = int(len(training_data) * limite)
         values = list(training_data.keys())[:limite_idx]
+        random.shuffle(values)
         data = {key: training_data[key] for key in values}
         epoch = total_epochs // len(limites)
 
-        errors = model.train(data, epoch, mutation_base=5, croisement=False, debug=False, filename="")
+        errors = model.train(data, epoch, mutation_base=0.1, croisement=False, debug=False, filename="")
     
     return errors
 
@@ -412,4 +414,3 @@ class GeneticAi:
 
 if __name__ == "__main__":
     pass
-
