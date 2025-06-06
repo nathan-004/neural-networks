@@ -30,3 +30,4 @@ Sur des données d'entraînement allant de -10 à 10
 
 https://medium.com/coinmonks/the-mathematics-of-neural-network-60a112dd3e05  
 https://medium.com/@roopal.tatiwar20/neuroevolution-evolving-neural-network-with-genetic-algorithms-8ca2165ad04c
+[Rétropropagation](https://www.ibm.com/fr-fr/think/topics/backpropagation)
