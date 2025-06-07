@@ -272,7 +272,7 @@ def classification_diabete():
         output_activation_function="sigmoid",
     )
 
-    errors = curriculum_learning(ai, 20000, training_data, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6,0.7, 0.8, 0.9])
+    errors = ai.train(training_data=training_data, epochs=1000, mutation_base=0.1, filename=None)
     
     xs = [i for i in range(len(errors))]
     plt.figure(figsize=(10, 6))

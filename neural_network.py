@@ -1,9 +1,11 @@
 import math
+import numpy as np
+
 import json
 from copy import deepcopy
 import time
-import numpy as np
 import random
+from typing import Optional
 
 class NeuralNetwork():
     pass
@@ -50,6 +52,20 @@ def binary_error(preds, targets):
     for targ, pred in zip(targets, preds):
         loss.append(abs(targ-pred))
     return sum(loss) / len(loss)
+
+# --------------------------- Calculs --------------------------
+def median(numbers:list[float]):
+    if len(numbers) == 0:
+        AssertionError("Taille de la liste de 0")
+
+    mid = len(numbers) // 2
+    if mid != len(numbers) / 2:
+        return numbers[mid]
+    else:
+        return (numbers[mid] + numbers[mid-1]) / 2
+    
+def mean(numbers:list[float]):
+    return sum(numbers)/len(numbers) 
 
 # --------------------------- Neural Network Operations ---------------------------------
 def copy(neural_network1, neural_network2):
@@ -122,6 +138,32 @@ def import_data(filename="neural_networks.json") -> dict:
 
     return dictionnaire
 
+def display_pop(population: list, epoch:int):
+    """
+    Affiche les statistiques de la population
+
+    Args:
+        population:liste de tuple (NeuralNetwork, score) trié
+    """
+    score_list = [population[idx][1] for idx in range(len(population))]
+
+    data = {
+        "epoch": epoch,
+        "median_error": median(score_list),
+        "mean_error": mean(score_list),
+        "best_error": score_list[0],
+        "worst_error": score_list[-1],
+    }
+
+    for key, value in data.items():
+        if isinstance(value, float):
+            # Format avec précision décimale pour les flottants
+            print(f"{key.rjust(12)} : {value:.16f}")
+        else:
+            # Format simple pour les entiers
+            print(f"{key.rjust(12)} : {value}")
+    print("")
+
 # ----------------------------------Training Operations-------------------------------------
 def curriculum_learning(model:GeneticAI, total_epochs:int, training_data:dict, limites:list, filename=""):
     """
@@ -149,6 +191,37 @@ def curriculum_learning(model:GeneticAI, total_epochs:int, training_data:dict, l
     
     return errors
 
+#-----------------------------------Opérations de mutation-----------------------------------------
+class GeneticOperations:
+    """Opérations de mutations génétiques"""
+    
+    def __init__(self, nn: NeuralNetwork):
+        self.nn = nn
+
+    def gaussian_mutation(self, stdev: float, mutation_probability: Optional[float] = None):
+        """
+        Args:
+            stdev: The standard deviation of the Gaussian noise to apply on
+                each decision variable.
+            mutation_probability: The probability of mutation, for each
+                decision variable.
+                If None, the value of this argument becomes 1.0, which means
+                that all of the decision variables will be affected by the
+                mutation. Defatuls to None
+        """
+        if mutation_probability is None:
+            mutation_probability = 1.0
+
+
+        for idx, weight in enumerate(self.nn.weights):
+            mask_W = np.random.rand(*weight.shape) < mutation_probability
+            mask_b = np.random.rand(*self.nn.biases[idx].shape) < mutation_probability
+            variation_W = np.random.normal(0, stdev, size=weight.shape) * mask_W
+            variation_b = np.random.normal(0, stdev, size=self.nn.biases[idx].shape) * mask_b
+
+            self.nn.weights[idx] += variation_W
+            self.nn.biases[idx] += variation_b
+
 class NeuralNetwork:
     """Réseau neuronal qui utilise des matrices de poids et de biais au lieu d'objets Node"""
     
@@ -156,6 +229,7 @@ class NeuralNetwork:
     max_weight = 1
     min_bias = -1
     max_bias = 1
+
     activation_functions = {
         "relu": relu,
         "sigmoid": sigmoid,
@@ -181,6 +255,8 @@ class NeuralNetwork:
             b = np.random.uniform(self.min_bias, self.max_bias, (layers[i + 1], 1))
             self.weights.append(W)
             self.biases.append(b)
+
+        self.operators = GeneticOperations(self)
 
     def prediction(self, inputs):
         """
@@ -215,15 +291,10 @@ class NeuralNetwork:
         else:
             base_mutation = mutation_base
 
-        cur_variation = base_mutation * abs(error)
+        stdev = base_mutation * abs(error)
 
-        # Mutation aléatoire sur tous les poids et biais
-        for i in range(len(self.weights)):
-            variation_W = np.random.uniform(-cur_variation, cur_variation, self.weights[i].shape) # Variation
-            variation_b = np.random.uniform(-cur_variation, cur_variation, self.biases[i].shape)
-
-            self.weights[i] += variation_W
-            self.biases[i] += variation_b
+        # Appel de la mutation gaussienne via self.operators
+        self.operators.gaussian_mutation(stdev=stdev)
 
     def export(self):
         """
@@ -327,7 +398,8 @@ class GeneticAi:
                 best = best_networks[0]
                 err  = precisions[best]
                 errors.append(err)
-                print(f"Epoch {i+1}/{epochs+self.start_epoch} — meilleure erreur = {err:.4f}")
+                
+                display_pop(precisions_sorted, i)
 
                 if debug:
                     t3 = time.time()
