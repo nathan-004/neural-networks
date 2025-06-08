@@ -48,10 +48,9 @@ def bce(y_pred, y_true):
     return sum(losses) / len(losses)
 
 def binary_error(preds, targets):
-    loss = []
-    for targ, pred in zip(targets, preds):
-        loss.append(abs(targ-pred))
-    return sum(loss) / len(loss)
+    preds_binary = [1 if p > 0.5 else 0 for p in preds]
+    correct = sum(1 for pb, t in zip(preds_binary, targets) if pb == t)
+    return 1 - (correct / len(preds))
 
 # --------------------------- Calculs --------------------------
 def median(numbers:list[float]):
@@ -194,6 +193,9 @@ def curriculum_learning(model:GeneticAI, total_epochs:int, training_data:dict, l
 #-----------------------------------Opérations de mutation-----------------------------------------
 class GeneticOperations:
     """Opérations de mutations génétiques"""
+
+    iteration = 0 # A modifier à l'appel
+    max_iterations = 1000
     
     def __init__(self, nn: NeuralNetwork):
         self.nn = nn
@@ -221,6 +223,59 @@ class GeneticOperations:
 
             self.nn.weights[idx] += variation_W
             self.nn.biases[idx] += variation_b
+
+    def uniform_mutation(self, mutation_strength=0.1, mutation_probability=1.0):
+        """
+        Mutation uniforme sur les poids et biais du réseau.
+
+        Parameters
+        ----------
+        mutation_strength : float
+            Amplitude maximale de variation (entre -mutation_strength et +mutation_strength).
+        mutation_probability : float
+            Probabilité qu’un poids ou biais subisse une mutation.
+        """
+        for i in range(len(self.nn.weights)):
+            # Créer un masque binaire avec la probabilité de mutation
+            mask_weights = np.random.rand(*self.nn.weights[i].shape) < mutation_probability
+            mask_biases = np.random.rand(*self.nn.biases[i].shape) < mutation_probability
+
+            # Générer des variations aléatoires uniformes dans l'intervalle [-mutation_strength, +mutation_strength]
+            variation_weights = np.random.uniform(-mutation_strength, mutation_strength, self.nn.weights[i].shape)
+            variation_biases = np.random.uniform(-mutation_strength, mutation_strength, self.nn.biases[i].shape)
+
+            # Appliquer uniquement sur les éléments sélectionnés par les masques
+            self.nn.weights[i] += mask_weights * variation_weights
+            self.nn.biases[i] += mask_biases * variation_biases
+
+    def non_uniform_mutation(self, base_strength=0.5, mutation_probability=1.0):
+        """
+        Mutation non uniforme : diminue progressivement l'amplitude de mutation.
+
+        Parameters
+        ----------
+        base_strength : float
+            Force de mutation maximale au début (itération 0).
+        mutation_probability : float
+            Probabilité qu’un poids/biais soit muté.
+        """
+        # Décroissance exponentielle du taux de mutation
+        # Plus l’itération augmente, plus la variation est faible
+        t = self.iteration / self.max_iterations
+        strength = base_strength * (1 - t)**2  # ou exp(-kt), etc.
+
+        for i in range(len(self.nn.weights)):
+            mask_weights = np.random.rand(*self.nn.weights[i].shape) < mutation_probability
+            mask_biases = np.random.rand(*self.nn.biases[i].shape) < mutation_probability
+
+            variation_weights = np.random.uniform(-strength, strength, self.nn.weights[i].shape)
+            variation_biases = np.random.uniform(-strength, strength, self.nn.biases[i].shape)
+
+            self.nn.weights[i] += mask_weights * variation_weights
+            self.nn.biases[i] += mask_biases * variation_biases
+
+        # Mise à jour de l'itération si pilotée ici
+        self.iteration += 1
 
 class NeuralNetwork:
     """Réseau neuronal qui utilise des matrices de poids et de biais au lieu d'objets Node"""
@@ -291,7 +346,8 @@ class NeuralNetwork:
         else:
             base_mutation = mutation_base
 
-        stdev = base_mutation * abs(error)
+        stdev = base_mutation * (1 / (1 + error))
+
 
         # Appel de la mutation gaussienne via self.operators
         self.operators.gaussian_mutation(stdev=stdev)
@@ -393,7 +449,7 @@ class GeneticAi:
                     t2 = time.time()
                     print(f"[DEBUG] Calcul des précisions : {t2-t1:.4f} s")
                 precisions_sorted = sorted(precisions.items(), key=lambda x: x[1])
-                n_best = max(1, self.population_size // 3) # 1/3
+                n_best = max(1, self.population_size // 4) # 1/3
                 best_networks = [nn for nn, _ in precisions_sorted[:n_best]]
                 best = best_networks[0]
                 err  = precisions[best]
@@ -422,6 +478,7 @@ class GeneticAi:
                             copy(crossover(best_net, best_networks[0]), nn)
                         else:
                             copy(crossover(best_net, best_networks[best_index+1]), nn)
+                        copy(crossover(best_net, nn), nn)
                     nn.mutate(error, mutation_base)
                 
                     best_index += 1
