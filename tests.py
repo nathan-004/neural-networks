@@ -262,17 +262,17 @@ def classification_diabete():
     }
 
     ai = GeneticAi(
-        population_size=50,
-        n_layers=3,
-        hidden_size=15,
+        population_size=200,
+        n_layers=1,
+        hidden_size=10,
         n_input=8,
         n_output=1,
-        erreur_calcul="erreur_binaire",
+        erreur_calcul="bce",
         hidden_activation_function="tanh",
         output_activation_function="sigmoid",
     )
 
-    errors = ai.train(training_data=training_data, epochs=1000, mutation_base=0.1, filename=None)
+    errors = ai.train(training_data=training_data, epochs=300, mutation_base=0.1, filename=None, croisement=False)
     
     xs = [i for i in range(len(errors))]
     plt.figure(figsize=(10, 6))
@@ -285,6 +285,7 @@ def classification_diabete():
     plt.show()
 
     # Évaluation sur les données de test
+    ai.error = ai.error_functions["erreur_binaire"]
     score = ai.get_precision(ai.population[0], test_data)
     print(f"Erreur moyenne sur test_data : {score:.4f}")
 
